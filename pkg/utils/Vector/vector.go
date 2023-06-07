@@ -24,6 +24,7 @@ func NewVector2[T any](capacity uint) *Vector[T] {
 	}
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func NewVector3[T any](length, capacity uint) *Vector[T] {
 	return &Vector[T]{
 		data: make([]T, length, capacity),
@@ -69,4 +70,3 @@ func (vector *Vector[T]) MarshalJSON() ([]byte, error) {
 }
 
 // #endregion
-

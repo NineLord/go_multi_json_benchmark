@@ -11,9 +11,41 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 func main() {
 	println("Hello!")
 
-	cantUsePointAsMapKey()
+	awaitFunc2()
 
 	println("Goodbye!")
+}
+
+func awaitFunc2() {
+	foo := make(chan bool)
+	go func() {
+		cantUsePointAsMapKey()
+		foo <- true
+	}()
+	<-foo
+	println("TRUE")
+	go func() {
+		cantUsePointAsMapKey()
+		foo <- true
+	}()
+	<-foo
+	println("TRUE")
+}
+
+func awaitFunc() {
+	foo := make(chan bool)
+	go func() {
+		cantUsePointAsMapKey()
+		foo <- true
+	}()
+	x := <-foo
+	println(x)
+	go func() {
+		cantUsePointAsMapKey()
+		foo <- true
+	}()
+	x2 := <-foo
+	println(x2)
 }
 
 func cantUsePointAsMapKey() {

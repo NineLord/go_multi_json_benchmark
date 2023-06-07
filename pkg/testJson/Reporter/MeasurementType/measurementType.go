@@ -1,4 +1,4 @@
-package Reporter
+package MeasurementType
 
 type MeasurementType uint
 

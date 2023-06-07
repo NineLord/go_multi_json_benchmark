@@ -18,8 +18,6 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // #endregion
 
-var CharacterPoll = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz!@#$%&"
-
 func getDefaultPathToSaveFile() cli.Path {
 	reportFileName := "/report_go.xlsx"
 	if homeDir, err := os.UserHomeDir(); err == nil {
