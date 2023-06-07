@@ -28,7 +28,7 @@ func NewRunTestLoop(testCount uint, valueToSearch float64) *RunTestLoop {
 }
 
 func (runTestLoop *RunTestLoop) RunTest(jsonName string, numberOfLetters uint, depth uint, numberOfChildren uint, rawJson []byte) error {
-	for counter := uint(1); counter < runTestLoop.testCount; counter++ {
+	for counter := uint(1); counter <= runTestLoop.testCount; counter++ {
 		testName := fmt.Sprintf("Test %d", counter)
 		if err := runTestLoop.runSingleTest(testName, jsonName, numberOfLetters, depth, numberOfChildren, rawJson); err != nil {
 			return err

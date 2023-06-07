@@ -1,21 +1,57 @@
 package main
 
 import (
-	jsoniter "github.com/json-iterator/go"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Config"
+	"os"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Example: make clean foo && clear  && ./bin/foo
 
 func main() {
 	println("Hello!")
 
-	awaitFunc2()
+	setRawConfig()
 
 	println("Goodbye!")
 }
 
+func setRawConfig() {
+	//config := Config.Config{
+	//	Name:             "Shimi",
+	//	Size:             "32KiB",
+	//	Path:             "/mnt/c/Users/Shaked/Documents/Mine/IdeaProjects/rust_json_benchmark/junk/smallJson_2_n8d10m3.json",
+	//	NumberOfLetters:  32,
+	//	Depth:            8,
+	//	NumberOfChildren: 3,
+	//	Raw:              nil,
+	//}
+	configs := []Config.Config{
+		{
+			Name:             "Shimi",
+			Size:             "32KiB",
+			Path:             "/mnt/c/Users/Shaked/Documents/Mine/IdeaProjects/rust_json_benchmark/junk/smallJson_2_n8d10m3.json",
+			NumberOfLetters:  32,
+			Depth:            8,
+			NumberOfChildren: 3,
+			Raw:              nil,
+		},
+	}
+
+	for index := range configs {
+		config := &configs[index]
+		var buffer []byte
+		var err error
+		if buffer, err = os.ReadFile(config.Path); err != nil {
+			panic(err)
+		}
+		config.Raw = buffer
+	}
+
+	//println("Config: %+v", config)
+	println("i hate go")
+}
+
+//goland:noinspection GoUnusedFunction
 func awaitFunc2() {
 	foo := make(chan bool)
 	go func() {
@@ -32,6 +68,7 @@ func awaitFunc2() {
 	println("TRUE")
 }
 
+//goland:noinspection GoUnusedFunction
 func awaitFunc() {
 	foo := make(chan bool)
 	go func() {

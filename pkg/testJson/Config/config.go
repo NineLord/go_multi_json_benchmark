@@ -7,5 +7,5 @@ type Config struct {
 	NumberOfLetters  uint
 	Depth            uint
 	NumberOfChildren uint
-	Raw              string
+	Raw              []byte
 }

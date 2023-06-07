@@ -1,22 +1,25 @@
 package main
 
-// #region Imports
+//#region Imports
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Config"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Reporter"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/RunTestLoop"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Vector"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"time"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-// #endregion
+//#endregion
 
 func getDefaultPathToSaveFile() cli.Path {
 	reportFileName := "/report_go.xlsx"
@@ -90,6 +93,7 @@ func parseArgument(arguments *cli.Args) (configFile []Config.Config, testCounter
 }
 
 func cliAction(arguments *cli.Context) (err error) {
+	//#region Input Parameters
 	args := arguments.Args()
 	var configs []Config.Config
 	var testCounter uint
@@ -99,6 +103,7 @@ func cliAction(arguments *cli.Context) (err error) {
 	pathToSaveFile := arguments.Path("saveFile")
 	threadCount := arguments.Uint("threadCount")
 	debug := arguments.Bool("debug")
+	//#endregion
 
 	runtime.GOMAXPROCS(int(threadCount))
 
@@ -120,79 +125,59 @@ func cliAction(arguments *cli.Context) (err error) {
 		)
 	}
 
+	//#region Test preparations
+	testNames := Vector.NewVector2[string](uint(len(configs)))
+	for index := range configs {
+		config := &configs[index]
+		var buffer []byte
+		if buffer, err = os.ReadFile(config.Path); err != nil {
+			return
+		}
+		config.Raw = buffer
+		testNames.Push(config.Name)
+	}
+	valueToSearch := float64(2_000_000_000)
+	testRunner := RunTestLoop.NewRunTestLoop(testCounter, valueToSearch)
+	errGroup := new(errgroup.Group)
+	//#endregion
+
+	//#region Testing
+	measurementTotalTestLength := Reporter.MakeMeasurement()
+	for index := range configs {
+		config := &configs[index]
+		errGroup.Go(func() error {
+			return testRunner.RunTest(config.Name, config.NumberOfLetters, config.Depth, config.NumberOfChildren, config.Raw)
+		})
+	}
+	if err = errGroup.Wait(); err != nil {
+		return
+	}
+	measurementTotalTestLength.SetFinishTime()
+	var totalTestLength time.Duration
+	if duration := measurementTotalTestLength.GetDuration(); duration != nil {
+		totalTestLength = *duration
+	}
+	//#endregion
+
+	measurement := Reporter.GetInstance().GetMeasures()
+
+	if debug {
+		buffer, err := json.MarshalIndent(measurement, "", "    ")
+		if err != nil {
+			println("Can't show measurements")
+		} else {
+			println(string(buffer))
+		}
+		println("Whole test:", totalTestLength.Milliseconds())
+	}
+
 	//var excelGenerator *ExcelGenerator.ExcelGenerator
 	//if excelGenerator, err = ExcelGenerator.NewExcelGenerator(jsonPath, sampleInterval, numberOfLetters, depth, numberOfChildren); err != nil {
 	//	return
 	//}
-	//var buffer []byte
-	//if buffer, err = os.ReadFile(jsonPath); err != nil {
-	//	return
-	//}
-	//valueToSearch := float64(2_000_000_000)
-	//
-	//for count := uint(0); count < testCounter; count++ {
-	//	// #region Test Preparations
-	//	reporter := Reporter.NewReporter()
-	//	mainSender := make(chan bool)
-	//	threadSender := make(chan []PcUsageExporter.PcUsage)
-	//	go PcUsageExporter.Main(threadSender, mainSender, sampleInterval)
-	//
-	//	// #endregion
-	//
-	//	// #region Testing
-	//
-	//	if _, err = reporter.Measure("Test Generating JSON", func() (any, error) {
-	//		return JsonGenerator.GenerateJson(CharacterPoll, numberOfLetters, depth, numberOfChildren)
-	//	}); err != nil {
-	//		return
-	//	}
-	//
-	//	var inputJsonFile map[string]interface{}
-	//	if _, err = reporter.Measure("Test Deserialize JSON", func() (any, error) {
-	//		return nil, json.Unmarshal(buffer, &inputJsonFile)
-	//	}); err != nil {
-	//		return
-	//	}
-	//
-	//	if found, _ := reporter.Measure("Test Iterate Iteratively", func() (any, error) {
-	//		return BreadthFirstSearch.Run(inputJsonFile, valueToSearch), nil
-	//	}); found == true {
-	//		return fmt.Errorf("BFS the tree found value that shouldn't be in it: %f", valueToSearch)
-	//	}
-	//
-	//	if found, _ := reporter.Measure("Test Iterate Recursively", func() (any, error) {
-	//		return DepthFirstSearch.Run(inputJsonFile, valueToSearch), nil
-	//	}); found == true {
-	//		return fmt.Errorf("DFS the tree found value that shouldn't be in it: %f", valueToSearch)
-	//	}
-	//
-	//	if _, err = reporter.Measure("Test Serialize JSON", func() (any, error) {
-	//		var buff []byte
-	//		var err error
-	//		if buff, err = json.Marshal(inputJsonFile); err != nil {
-	//			return nil, err
-	//		}
-	//		return string(buff), nil
-	//	}); err != nil {
-	//		return
-	//	}
-	//
-	//	mainSender <- true
-	//	close(mainSender)
-	//	pcUsages := <-threadSender
-	//	/*for _, pcUsage := range pcUsages {
-	//		fmt.Printf("CPU: %.3f%% \t RAM: %.3fMB\n", pcUsage.Cpu, pcUsage.Ram)
-	//	}
-	//	for measureName, measureDuration := range reporter.GetMeasures() {
-	//		fmt.Printf("%s : \t %d\n", measureName, measureDuration)
-	//	}*/
 	//	if err = excelGenerator.AppendWorksheet("Test "+strconv.Itoa(int(count)+1), reporter.GetMeasures(), pcUsages); err != nil {
 	//		return
 	//	}
-	//
-	//	// #endregion
-	//}
-	//
 	//err = excelGenerator.SaveAs(pathToSaveFile)
 	return
 }
