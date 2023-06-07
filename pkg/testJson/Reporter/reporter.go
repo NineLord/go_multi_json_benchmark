@@ -3,6 +3,7 @@ package Reporter
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 var lock = &sync.Mutex{}
@@ -21,6 +22,7 @@ func GetInstance() *Reporter {
 }
 
 type ReportData map[string]map[string]map[MeasurementType]*Measurement
+type ReportDataCopy map[string]map[string]map[MeasurementType]time.Duration
 
 type Reporter struct {
 	lock                sync.RWMutex
@@ -68,9 +70,25 @@ func (reporter *Reporter) Measure(testCount *string, jsonName *string, measureme
 	return functionResult, functionError
 }
 
-func (reporter *Reporter) GetMeasures() ReportData {
-	// Shaked-TODO: lock & clone the map before returning it
-	return reporter.measurementDuration
+func (reporter *Reporter) GetMeasures() ReportDataCopy {
+	reporter.lock.RLock()
+	defer reporter.lock.RUnlock()
+	result := make(ReportDataCopy)
+	for testCount, testMap := range reporter.measurementDuration {
+		copyTestMap := make(map[string]map[MeasurementType]time.Duration)
+		for jsonName, jsonMap := range testMap {
+			copyJsonMap := make(map[MeasurementType]time.Duration)
+			for measurementType, measurement := range jsonMap {
+				if duration := measurement.GetDuration(); duration != nil {
+					duration := *duration
+					copyJsonMap[measurementType] = duration
+				}
+			}
+			copyTestMap[jsonName] = copyJsonMap
+		}
+		result[testCount] = copyTestMap
+	}
+	return result
 }
 
 func setDefault[K comparable, V any](mappy map[K]V, key K, defaultValue V) V {
