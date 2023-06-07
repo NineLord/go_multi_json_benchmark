@@ -9,10 +9,12 @@ import (
 func TestMeasurement_SetFinishTime(t *testing.T) {
 	assertions := assert.New(t)
 
-	measurement := NewMeasurement()
+	measurement := MakeMeasurement()
 	time.Sleep(1 * time.Second)
 	measurement.SetFinishTime()
-	duration := *measurement.GetDuration()
+	durationPtr := measurement.GetDuration()
+	assertions.NotNil(durationPtr)
+	duration := *durationPtr
 
 	assertions.GreaterOrEqual(duration, 1*time.Second)
 }
@@ -20,19 +22,30 @@ func TestMeasurement_SetFinishTime(t *testing.T) {
 func TestMeasurement_GetDuration(t *testing.T) {
 	assertions := assert.New(t)
 
-	measurement := NewMeasurement()
+	measurement := MakeMeasurement()
 	duration := measurement.GetDuration()
 
 	assertions.Nil(duration)
 }
 
-func TestMakeMeasurement(t *testing.T) {
+func TestMeasurement_New_SetFinishTime(t *testing.T) {
 	assertions := assert.New(t)
 
-	measurement := MakeMeasurement()
+	measurement := NewMeasurement()
 	time.Sleep(1 * time.Second)
 	measurement.SetFinishTime()
-	duration := *measurement.GetDuration()
+	durationPtr := measurement.GetDuration()
+	assertions.NotNil(durationPtr)
+	duration := *durationPtr
 
 	assertions.GreaterOrEqual(duration, 1*time.Second)
+}
+
+func TestMeasurement_New_GetDuration(t *testing.T) {
+	assertions := assert.New(t)
+
+	measurement := NewMeasurement()
+	duration := measurement.GetDuration()
+
+	assertions.Nil(duration)
 }
