@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Config"
+	"math"
 	"os"
 )
 
@@ -10,9 +11,34 @@ import (
 func main() {
 	println("Hello!")
 
-	setRawConfig()
+	println(columnStringToNumber("AA"))
+	println(columnNumberToString(27))
 
 	println("Goodbye!")
+}
+
+func columnStringToNumber(column string) uint {
+	letters := []rune(column)
+	result := uint(0)
+	for _, letter := range letters {
+		result = uint(letter) - 64 + result*26
+	}
+	return result
+}
+
+func columnNumberToString(column int) string {
+	column--
+	ordA := int('A')
+	ordZ := int('Z')
+	length := ordZ - ordA + 1
+
+	result := ""
+	for 0 <= column {
+		x := string(rune(column%length + ordA))
+		result = x + result
+		column = int(math.Floor(float64(column)/float64(length))) - 1
+	}
+	return result
 }
 
 func setRawConfig() {

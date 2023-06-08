@@ -1,11 +1,14 @@
 package ExcelGenerator
 
 import (
+	"fmt"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Config"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Reporter/MeasurementType"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/utils"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/MathDataCollector"
 	"github.com/xuri/excelize/v2"
+	"math"
+	"strconv"
 	"time"
 )
 
@@ -88,11 +91,135 @@ func NewExcelGenerator(jsonNames *utils.Vector[string], totalTestLength time.Dur
 }
 
 // #region Adding Data
-func (excelGenerator *ExcelGenerator) AppendWorksheet(worksheetName string, measures map[string]map[MeasurementType.MeasurementType]time.Duration) error {
-	if _, err := excelGenerator.workbook.NewSheet(worksheetName); err != nil {
-		return err
+func (excelGenerator *ExcelGenerator) AppendWorksheet(worksheetName string, measures map[string]map[MeasurementType.MeasurementType]time.Duration) (err error) {
+	if _, err = excelGenerator.workbook.NewSheet(worksheetName); err != nil {
+		return
 	}
-	return nil
+
+	testDataCollectors := getDataCollectorsForEachTest()
+	currentRow := uint(1)
+
+	for _, jsonName := range excelGenerator.jsonNames.GetAll() {
+		testData, ok := measures[jsonName]
+		if !ok {
+			return fmt.Errorf("given database doesn't have a the JSON name: %s", jsonName)
+		}
+
+		if currentRow, err = excelGenerator.setColorfulTitle(worksheetName, currentRow, 1, jsonName); err != nil {
+			return
+		}
+
+		jsonDataCollector := MathDataCollector.NewMathDataCollector()
+
+		if currentRow, err = excelGenerator.addTestData(currentRow, 1, MeasurementType.GeneratingJson, "Generating JSON", worksheetName, jsonName, testData, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addTestData(currentRow, 1, MeasurementType.IterateIteratively, "Iterating JSON Iteratively - BFS", worksheetName, jsonName, testData, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addTestData(currentRow, 1, MeasurementType.IterateRecursively, "Iterating JSON Recursively - DFS", worksheetName, jsonName, testData, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addTestData(currentRow, 1, MeasurementType.DeserializeJson, "Deserializing JSON", worksheetName, jsonName, testData, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addTestData(currentRow, 1, MeasurementType.SerializeJson, "Serializing JSON", worksheetName, jsonName, testData, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addTotalTestData(currentRow, 1, MeasurementType.Total, "Total", worksheetName, jsonName, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addTestData(currentRow, 1, MeasurementType.TotalIncludeContextSwitch, "Total Including Context Switch", worksheetName, jsonName, testData, jsonDataCollector, testDataCollectors); err != nil {
+			return
+		}
+
+		currentRow++
+	}
+
+	return
+}
+
+func (excelGenerator *ExcelGenerator) addTestData(row uint, column uint,
+	measurementType MeasurementType.MeasurementType, title string,
+	worksheetName, jsonName string,
+	testData map[MeasurementType.MeasurementType]time.Duration,
+	jsonDataCollector *MathDataCollector.MathDataCollector,
+	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
+
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	var value float64
+	if duration, ok := testData[measurementType]; !ok {
+		return row, fmt.Errorf("given database doesn't have a measurement type: %d", measurementType)
+	} else {
+		value = float64(duration.Milliseconds())
+	}
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if err := setCellIntAndStyle(excelGenerator.workbook, worksheetName, nextCell, int(value), excelGenerator.formatBorderCenter); err != nil {
+		return row, err
+	}
+	jsonDataCollector.Add(value)
+	if measureMap, ok := excelGenerator.averagePerJsons[jsonName]; !ok {
+		return row, fmt.Errorf("averages_per_jsons doesn't have the given JSON name: %s", jsonName)
+	} else if dataCollector, ok := measureMap[measurementType]; !ok {
+		return row, fmt.Errorf("averages_per_jsons doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+	if dataCollector, ok := excelGenerator.averageAllJsons[measurementType]; !ok {
+		return row, fmt.Errorf("averages_all_jsons doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+	if dataCollector, ok := testDataCollectors[measurementType]; !ok {
+		return row, fmt.Errorf("test_data_collectors doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+
+	return row + 1, nil
+}
+
+func (excelGenerator *ExcelGenerator) addTotalTestData(row uint, column uint,
+	measurementType MeasurementType.MeasurementType, title string,
+	worksheetName, jsonName string,
+	jsonDataCollector *MathDataCollector.MathDataCollector,
+	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
+
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	value := jsonDataCollector.GetSum()
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if err := setCellIntAndStyle(excelGenerator.workbook, worksheetName, nextCell, int(value), excelGenerator.formatBorderCenter); err != nil {
+		return row, err
+	}
+	if measureMap, ok := excelGenerator.averagePerJsons[jsonName]; !ok {
+		return row, fmt.Errorf("averages_per_jsons doesn't have the given JSON name: %s", jsonName)
+	} else if dataCollector, ok := measureMap[measurementType]; !ok {
+		return row, fmt.Errorf("averages_per_jsons doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+	if dataCollector, ok := excelGenerator.averageAllJsons[measurementType]; !ok {
+		return row, fmt.Errorf("averages_all_jsons doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+	if dataCollector, ok := testDataCollectors[measurementType]; !ok {
+		return row, fmt.Errorf("test_data_collectors doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+
+	return row + 1, nil
 }
 
 //#endregion
@@ -115,6 +242,52 @@ func (excelGenerator *ExcelGenerator) SaveAs(pathToSaveFile string) error {
 	return excelGenerator.workbook.Close()
 }
 
+// #region Helper methods for excelize
+func (excelGenerator *ExcelGenerator) setColorfulTitle(worksheetName string, row uint, column uint, title string) (uint, error) {
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatColorful); err != nil {
+		return row, err
+	}
+	if err := excelGenerator.workbook.MergeCell(worksheetName, cell, nextCell); err != nil {
+		return row, err
+	}
+
+	return row + 1, nil
+}
+
+func setCellDefaultAndStyle(workbook *excelize.File, worksheetName, cell, value string, style int) error {
+	if err := workbook.SetCellDefault(worksheetName, cell, value); err != nil {
+		return err
+	}
+	if err := workbook.SetCellStyle(worksheetName, cell, cell, style); err != nil {
+		return err
+	}
+	return nil
+}
+
+func setCellIntAndStyle(workbook *excelize.File, worksheetName, cell string, value, style int) error {
+	if err := workbook.SetCellInt(worksheetName, cell, value); err != nil {
+		return err
+	}
+	if err := workbook.SetCellStyle(worksheetName, cell, cell, style); err != nil {
+		return err
+	}
+	return nil
+}
+
+func setCellFloat64AndStyle(workbook *excelize.File, worksheetName, cell string, value float64, style int) error {
+	if err := workbook.SetCellFloat(worksheetName, cell, value, 2, 64); err != nil {
+		return err
+	}
+	if err := workbook.SetCellStyle(worksheetName, cell, cell, style); err != nil {
+		return err
+	}
+	return nil
+}
+
 func getDataCollectorsForEachTest() map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector {
 	dataCollectors := make(map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector)
 	for _, measurementType := range MeasurementType.VariantsMeasurementTypes {
@@ -122,3 +295,29 @@ func getDataCollectorsForEachTest() map[MeasurementType.MeasurementType]MathData
 	}
 	return dataCollectors
 }
+
+func columnStringToNumber(column string) uint {
+	letters := []rune(column)
+	result := uint(0)
+	for _, letter := range letters {
+		result = uint(letter) - 64 + result*26
+	}
+	return result
+}
+
+func columnNumberToString(column int) string {
+	column--
+	ordA := int('A')
+	ordZ := int('Z')
+	length := ordZ - ordA + 1
+
+	result := ""
+	for 0 <= column {
+		x := string(rune(column%length + ordA))
+		result = x + result
+		column = int(math.Floor(float64(column)/float64(length))) - 1
+	}
+	return result
+}
+
+//#endregion

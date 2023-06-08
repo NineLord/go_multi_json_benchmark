@@ -111,7 +111,7 @@ func cliAction(arguments *cli.Context) (err error) {
 	debug := arguments.Bool("debug")
 	//#endregion
 
-	runtime.GOMAXPROCS(int(threadCount))
+	runtime.GOMAXPROCS(int(threadCount)) // Shaked-TODO: make this optional
 
 	if debug {
 		var prettyConfig string
