@@ -90,7 +90,8 @@ func NewExcelGenerator(jsonNames *utils.Vector[string], totalTestLength time.Dur
 	}
 }
 
-// #region Adding Data
+//#region Adding Data
+
 func (excelGenerator *ExcelGenerator) AppendWorksheet(worksheetName string, measures map[string]map[MeasurementType.MeasurementType]time.Duration) (err error) {
 	if _, err = excelGenerator.workbook.NewSheet(worksheetName); err != nil {
 		return
@@ -274,10 +275,83 @@ func (excelGenerator *ExcelGenerator) addTestAverageData(row, column uint,
 
 //#endregion
 
+//#region Add summary worksheet
+
+func (excelGenerator *ExcelGenerator) addAverageWorksheet() (err error) {
+	worksheetName := "Average"
+	if _, err = excelGenerator.workbook.NewSheet(worksheetName); err != nil {
+		return
+	}
+
+	currentRow := uint(1)
+	for _, jsonName := range excelGenerator.jsonNames.GetAll() {
+		testData, ok := excelGenerator.averagePerJsons[jsonName]
+		if !ok {
+			return fmt.Errorf("averages_per_jsons doesn't contain the JSON name: %s", jsonName)
+		}
+
+		if currentRow, err = excelGenerator.setColorfulTitle(worksheetName, currentRow, 1, jsonName); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.GeneratingJson, "Average Generating JSONs", worksheetName, testData); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.IterateIteratively, "Average Iterating JSONs Iteratively - BFS", worksheetName, testData); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.IterateRecursively, "Average Iterating JSONs Recursively - DFS", worksheetName, testData); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.DeserializeJson, "Average Deserializing JSONs", worksheetName, testData); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.SerializeJson, "Average Serializing JSONs", worksheetName, testData); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.Total, "Average Totals", worksheetName, testData); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAverageData(currentRow, 1, MeasurementType.TotalIncludeContextSwitch, "Average Totals Including Context Switch", worksheetName, testData); err != nil {
+			return
+		}
+
+		currentRow++
+	}
+	return nil
+}
+
+func (excelGenerator *ExcelGenerator) addAverageData(row, column uint,
+	measurementType MeasurementType.MeasurementType, title string,
+	worksheetName string,
+	testData map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector) (uint, error) {
+
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if dataCollector, ok := testData[measurementType]; !ok {
+		return row, fmt.Errorf("test data does not contain the measurement type: %d", measurementType)
+	} else if value, err := dataCollector.Average(); err == nil {
+		if err := setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorderCenter); err != nil {
+			return row, err
+		}
+	}
+
+	return row + 1, nil
+}
+
+//#endregion
+
+//#region Add about worksheet
+//#endregion
+
 func (excelGenerator *ExcelGenerator) SaveAs(pathToSaveFile string) error {
-	//if err := excelGenerator.addAverageWorksheet(); err != nil {
-	//	return err
-	//}
+	if err := excelGenerator.addAverageWorksheet(); err != nil {
+		return err
+	}
 	//if err := excelGenerator.addAboutWorksheet(); err != nil {
 	//	return err
 	//}
@@ -292,7 +366,8 @@ func (excelGenerator *ExcelGenerator) SaveAs(pathToSaveFile string) error {
 	return excelGenerator.workbook.Close()
 }
 
-// #region Helper methods for excelize
+//#region Helper methods for excelize
+
 func (excelGenerator *ExcelGenerator) setColorfulTitle(worksheetName string, row uint, column uint, title string) (uint, error) {
 	rowString := strconv.Itoa(int(row))
 	cell := columnNumberToString(int(column)) + rowString
