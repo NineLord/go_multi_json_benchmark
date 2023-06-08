@@ -317,7 +317,45 @@ func (excelGenerator *ExcelGenerator) addAverageWorksheet() (err error) {
 
 		currentRow++
 	}
-	return nil
+
+	currentRow = 1
+	if currentRow, err = excelGenerator.setColorfulTitle(worksheetName, currentRow, 4, "Averages of all Tests"); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.GeneratingJson, "Average Generating all JSONs", worksheetName); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.IterateIteratively, "Average Iterating all JSONs Iteratively - BFS", worksheetName); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.IterateRecursively, "Average Iterating all JSONs Recursively - DFS", worksheetName); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.DeserializeJson, "Average Deserializing all JSONs", worksheetName); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.SerializeJson, "Average Serializing all JSONs", worksheetName); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.Total, "Average Totals", worksheetName); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addAverageAverageData(currentRow, 4, MeasurementType.TotalIncludeContextSwitch, "Average Totals Including Context Switch", worksheetName); err != nil {
+		return
+	}
+
+	currentRow++
+	rowString := strconv.Itoa(int(currentRow))
+	cell := columnNumberToString(4) + rowString
+	nextCell := columnNumberToString(5) + rowString
+	if err = setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, "Totals of all Tests Including Context Switch", excelGenerator.formatBorder); err != nil {
+		return
+	}
+	if err = setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, float64(excelGenerator.totalTestLength.Milliseconds()), excelGenerator.formatBorderCenter); err != nil {
+		return
+	}
+
+	return
 }
 
 func (excelGenerator *ExcelGenerator) addAverageData(row, column uint,
@@ -333,6 +371,28 @@ func (excelGenerator *ExcelGenerator) addAverageData(row, column uint,
 		return row, err
 	}
 	if dataCollector, ok := testData[measurementType]; !ok {
+		return row, fmt.Errorf("test data does not contain the measurement type: %d", measurementType)
+	} else if value, err := dataCollector.Average(); err == nil {
+		if err := setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorderCenter); err != nil {
+			return row, err
+		}
+	}
+
+	return row + 1, nil
+}
+
+func (excelGenerator *ExcelGenerator) addAverageAverageData(row, column uint,
+	measurementType MeasurementType.MeasurementType, title string,
+	worksheetName string) (uint, error) {
+
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if dataCollector, ok := excelGenerator.averageAllJsons[measurementType]; !ok {
 		return row, fmt.Errorf("test data does not contain the measurement type: %d", measurementType)
 	} else if value, err := dataCollector.Average(); err == nil {
 		if err := setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorderCenter); err != nil {
