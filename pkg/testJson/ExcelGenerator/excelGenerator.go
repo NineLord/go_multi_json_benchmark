@@ -406,15 +406,77 @@ func (excelGenerator *ExcelGenerator) addAverageAverageData(row, column uint,
 //#endregion
 
 //#region Add about worksheet
+
+func (excelGenerator *ExcelGenerator) addAboutWorksheet() (err error) {
+	worksheetName := "About"
+	if _, err = excelGenerator.workbook.NewSheet(worksheetName); err != nil {
+		return
+	}
+	currentRow := uint(1)
+	for _, config := range excelGenerator.aboutInformation {
+		if currentRow, err = excelGenerator.setColorfulTitle(worksheetName, currentRow, 1, config.Name); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAboutDefaultData(currentRow, 1, "Size", config.Size, worksheetName); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAboutIntData(currentRow, 1, "Number Of Letters", int(config.NumberOfLetters), worksheetName); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAboutIntData(currentRow, 1, "Depth", int(config.Depth), worksheetName); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAboutIntData(currentRow, 1, "Number Of Children", int(config.NumberOfChildren), worksheetName); err != nil {
+			return
+		}
+		if currentRow, err = excelGenerator.addAboutDefaultData(currentRow, 1, "Path", config.Path, worksheetName); err != nil {
+			return
+		}
+
+		currentRow++
+	}
+	return
+}
+
+func (excelGenerator *ExcelGenerator) addAboutDefaultData(row, column uint, title string, value string, worksheetName string) (uint, error) {
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+
+	return row + 1, nil
+}
+
+func (excelGenerator *ExcelGenerator) addAboutIntData(row, column uint, title string, value int, worksheetName string) (uint, error) {
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if err := setCellIntAndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+
+	return row + 1, nil
+}
+
 //#endregion
 
 func (excelGenerator *ExcelGenerator) SaveAs(pathToSaveFile string) error {
 	if err := excelGenerator.addAverageWorksheet(); err != nil {
 		return err
 	}
-	//if err := excelGenerator.addAboutWorksheet(); err != nil {
-	//	return err
-	//}
+	if err := excelGenerator.addAboutWorksheet(); err != nil {
+		return err
+	}
 
 	if err := excelGenerator.workbook.DeleteSheet("Sheet1"); err != nil { // For some reason doing it doesn't work in the constructor
 		return err
