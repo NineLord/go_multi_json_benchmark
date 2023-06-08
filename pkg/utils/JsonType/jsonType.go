@@ -2,8 +2,8 @@ package JsonType
 
 import (
 	"fmt"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/utils"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Randomizer"
-	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Vector"
 	"strings"
 )
 
@@ -43,7 +43,7 @@ func GetRandomNoneLeafJson(numberOfChildren uint) interface{} {
 	jsonType := getRandomNoneLeafJsonType()
 	switch jsonType {
 	case Array:
-		return Vector.NewVector2[interface{}](numberOfChildren)
+		return utils.NewVector2[interface{}](numberOfChildren)
 	case Object:
 		return make(map[string]interface{})
 	default:

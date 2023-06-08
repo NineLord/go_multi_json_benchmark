@@ -1,14 +1,14 @@
 package BreadthFirstSearch
 
 import (
-	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Vector"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/utils"
 	"reflect"
 )
 
 func Run(tree interface{}, value interface{}) bool {
-	currentNodes := Vector.NewVector[interface{}](0)
+	currentNodes := utils.NewVector[interface{}](0)
 	currentNodes.Push(tree)
-	nextLevelNodes := Vector.NewVector[interface{}](0)
+	nextLevelNodes := utils.NewVector[interface{}](0)
 
 	for currentNodes.Len() != 0 {
 		currentNode := currentNodes.Pop()
@@ -42,7 +42,7 @@ func Run(tree interface{}, value interface{}) bool {
 
 		if currentNodes.Len() == 0 {
 			currentNodes = nextLevelNodes
-			nextLevelNodes = Vector.NewVector[interface{}](0)
+			nextLevelNodes = utils.NewVector[interface{}](0)
 		}
 	}
 

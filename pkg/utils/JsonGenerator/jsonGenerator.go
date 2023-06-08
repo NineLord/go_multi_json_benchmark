@@ -2,9 +2,9 @@ package JsonGenerator
 
 import (
 	"fmt"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/utils"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/JsonType"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Randomizer"
-	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Vector"
 	"reflect"
 	"strings"
 )
@@ -37,9 +37,9 @@ func GenerateJson(characterPoll string, numberOfLetters uint, depth uint, number
 func (jsonGenerator *jsonGenerator) generateFullTree() (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
-	currentNodes := Vector.NewVector2[interface{}](1)
+	currentNodes := utils.NewVector2[interface{}](1)
 	currentNodes.Push(result)
-	nextLevelNodes := Vector.NewVector2[interface{}](0)
+	nextLevelNodes := utils.NewVector2[interface{}](0)
 	lastLevel := jsonGenerator.depth - 1
 
 	for level := uint(0); level < jsonGenerator.depth; level++ {
@@ -60,8 +60,8 @@ func (jsonGenerator *jsonGenerator) generateFullTree() (map[string]interface{}, 
 					currentNode[jsonGenerator.getRandomNodeName()] = childNodeValue
 					nextLevelNodes.Push(childNodeValue)
 				}
-			case strings.HasPrefix(currentNodeType.String(), "*Vector"):
-				currentNode, _ := currentNode.(*Vector.Vector[interface{}])
+			case strings.HasPrefix(currentNodeType.String(), "*utils.Vector"):
+				currentNode, _ := currentNode.(*utils.Vector[interface{}])
 				for _nodeCount := uint(0); _nodeCount < jsonGenerator.numberOfChildren; _nodeCount++ {
 					var childNodeValue interface{}
 					if level == lastLevel {
@@ -73,12 +73,12 @@ func (jsonGenerator *jsonGenerator) generateFullTree() (map[string]interface{}, 
 					nextLevelNodes.Push(childNodeValue)
 				}
 			default:
-				panic(fmt.Sprintf("generateFullTree unknown JSON type: %d", currentNodeType))
+				panic(fmt.Sprintf("generateFullTree unknown JSON type: %s", currentNodeType.String()))
 			}
 		}
 
 		currentNodes = nextLevelNodes
-		nextLevelNodes = Vector.NewVector2[interface{}](0)
+		nextLevelNodes = utils.NewVector2[interface{}](0)
 	}
 
 	return result, nil

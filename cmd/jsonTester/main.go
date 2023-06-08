@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Config"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/ExcelGenerator"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/Reporter"
 	"github.com/NineLord/go_multi_json_benchmark/pkg/testJson/RunTestLoop"
-	"github.com/NineLord/go_multi_json_benchmark/pkg/utils/Vector"
+	"github.com/NineLord/go_multi_json_benchmark/pkg/utils"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 	"log"
@@ -68,6 +69,11 @@ func main() {
 }
 
 func parseArgument(arguments *cli.Args) (configFile []Config.Config, testCounter uint, err error) {
+	if (*arguments).Len() != 2 {
+		//goland:noinspection GoErrorStringFormat
+		err = errors.New("Too many arguments passed (did you put flags after argument?)")
+		return
+	}
 	configPath := (*arguments).Get(0)
 	if configPath == "" {
 		err = errors.New("first argument must be the absolute path to the JSON file that will be tested")
@@ -126,7 +132,7 @@ func cliAction(arguments *cli.Context) (err error) {
 	}
 
 	//#region Test preparations
-	testNames := Vector.NewVector2[string](uint(len(configs)))
+	testNames := utils.NewVector2[string](uint(len(configs)))
 	for index := range configs {
 		config := &configs[index]
 		var buffer []byte
@@ -171,13 +177,13 @@ func cliAction(arguments *cli.Context) (err error) {
 		println("Whole test:", totalTestLength.Milliseconds())
 	}
 
-	//var excelGenerator *ExcelGenerator.ExcelGenerator
-	//if excelGenerator, err = ExcelGenerator.NewExcelGenerator(jsonPath, sampleInterval, numberOfLetters, depth, numberOfChildren); err != nil {
-	//	return
-	//}
+	var excelGenerator *ExcelGenerator.ExcelGenerator
+	if excelGenerator, err = ExcelGenerator.NewExcelGenerator(testNames, totalTestLength, configs); err != nil {
+		return
+	}
 	//	if err = excelGenerator.AppendWorksheet("Test "+strconv.Itoa(int(count)+1), reporter.GetMeasures(), pcUsages); err != nil {
 	//		return
 	//	}
-	//err = excelGenerator.SaveAs(pathToSaveFile)
+	err = excelGenerator.SaveAs(pathToSaveFile)
 	return
 }

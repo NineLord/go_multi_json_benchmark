@@ -1,4 +1,4 @@
-package Vector
+package utils
 
 import (
 	jsoniter "github.com/json-iterator/go"
