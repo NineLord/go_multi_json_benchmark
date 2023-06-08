@@ -136,6 +136,33 @@ func (excelGenerator *ExcelGenerator) AppendWorksheet(worksheetName string, meas
 		currentRow++
 	}
 
+	currentRow = 1
+	if currentRow, err = excelGenerator.setColorfulTitle(worksheetName, currentRow, 4, "Averages of this Test"); err != nil {
+		return
+	}
+
+	if currentRow, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.GeneratingJson, "Average Generating JSONs", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.IterateIteratively, "Average Iterating JSONs Iteratively - BFS", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.IterateRecursively, "Average Iterating JSONs Recursively - DFS", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.DeserializeJson, "Average Deserializing JSONs", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.SerializeJson, "Average Serializing JSONs", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+	if currentRow, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.Total, "Average Totals", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+	if _, err = excelGenerator.addTestAverageData(currentRow, 4, MeasurementType.TotalIncludeContextSwitch, "Average Totals Including Context Switch", worksheetName, testDataCollectors); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -159,10 +186,49 @@ func (excelGenerator *ExcelGenerator) addTestData(row uint, column uint,
 	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
 		return row, err
 	}
-	if err := setCellIntAndStyle(excelGenerator.workbook, worksheetName, nextCell, int(value), excelGenerator.formatBorderCenter); err != nil {
+	if err := setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorderCenter); err != nil {
 		return row, err
 	}
 	jsonDataCollector.Add(value)
+	if measureMap, ok := excelGenerator.averagePerJsons[jsonName]; !ok {
+		return row, fmt.Errorf("averages_per_jsons doesn't have the given JSON name: %s", jsonName)
+	} else if dataCollector, ok := measureMap[measurementType]; !ok {
+		return row, fmt.Errorf("averages_per_jsons doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+	if dataCollector, ok := excelGenerator.averageAllJsons[measurementType]; !ok {
+		return row, fmt.Errorf("averages_all_jsons doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+	}
+	if dataCollector, ok := testDataCollectors[measurementType]; !ok {
+		return row, fmt.Errorf("test_data_collectors doesn't have the given measurement type: %d", measurementType)
+	} else {
+		dataCollector.Add(value)
+		println("hey") // Shaked-TODO: delete this
+	}
+
+	return row + 1, nil
+}
+
+func (excelGenerator *ExcelGenerator) addTotalTestData(row uint, column uint,
+	measurementType MeasurementType.MeasurementType, title string,
+	worksheetName, jsonName string,
+	jsonDataCollector *MathDataCollector.MathDataCollector,
+	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
+
+	rowString := strconv.Itoa(int(row))
+	cell := columnNumberToString(int(column)) + rowString
+	nextCell := columnNumberToString(int(column)+1) + rowString
+
+	value := jsonDataCollector.GetSum()
+	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
+		return row, err
+	}
+	if err := setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorderCenter); err != nil {
+		return row, err
+	}
 	if measureMap, ok := excelGenerator.averagePerJsons[jsonName]; !ok {
 		return row, fmt.Errorf("averages_per_jsons doesn't have the given JSON name: %s", jsonName)
 	} else if dataCollector, ok := measureMap[measurementType]; !ok {
@@ -184,39 +250,24 @@ func (excelGenerator *ExcelGenerator) addTestData(row uint, column uint,
 	return row + 1, nil
 }
 
-func (excelGenerator *ExcelGenerator) addTotalTestData(row uint, column uint,
+func (excelGenerator *ExcelGenerator) addTestAverageData(row, column uint,
 	measurementType MeasurementType.MeasurementType, title string,
-	worksheetName, jsonName string,
-	jsonDataCollector *MathDataCollector.MathDataCollector,
+	worksheetName string,
 	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
 
 	rowString := strconv.Itoa(int(row))
 	cell := columnNumberToString(int(column)) + rowString
 	nextCell := columnNumberToString(int(column)+1) + rowString
 
-	value := jsonDataCollector.GetSum()
 	if err := setCellDefaultAndStyle(excelGenerator.workbook, worksheetName, cell, title, excelGenerator.formatBorder); err != nil {
 		return row, err
 	}
-	if err := setCellIntAndStyle(excelGenerator.workbook, worksheetName, nextCell, int(value), excelGenerator.formatBorderCenter); err != nil {
-		return row, err
-	}
-	if measureMap, ok := excelGenerator.averagePerJsons[jsonName]; !ok {
-		return row, fmt.Errorf("averages_per_jsons doesn't have the given JSON name: %s", jsonName)
-	} else if dataCollector, ok := measureMap[measurementType]; !ok {
-		return row, fmt.Errorf("averages_per_jsons doesn't have the given measurement type: %d", measurementType)
-	} else {
-		dataCollector.Add(value)
-	}
-	if dataCollector, ok := excelGenerator.averageAllJsons[measurementType]; !ok {
-		return row, fmt.Errorf("averages_all_jsons doesn't have the given measurement type: %d", measurementType)
-	} else {
-		dataCollector.Add(value)
-	}
 	if dataCollector, ok := testDataCollectors[measurementType]; !ok {
-		return row, fmt.Errorf("test_data_collectors doesn't have the given measurement type: %d", measurementType)
-	} else {
-		dataCollector.Add(value)
+		return row, fmt.Errorf("test_data_collectors does not contain the measurement type: %d", measurementType)
+	} else if value, err := dataCollector.Average(); err == nil {
+		if err := setCellFloat64AndStyle(excelGenerator.workbook, worksheetName, nextCell, value, excelGenerator.formatBorderCenter); err != nil {
+			return row, err
+		}
 	}
 
 	return row + 1, nil
