@@ -181,9 +181,17 @@ func cliAction(arguments *cli.Context) (err error) {
 	if excelGenerator, err = ExcelGenerator.NewExcelGenerator(testNames, totalTestLength, configs); err != nil {
 		return
 	}
-	//	if err = excelGenerator.AppendWorksheet("Test "+strconv.Itoa(int(count)+1), reporter.GetMeasures(), pcUsages); err != nil {
-	//		return
-	//	}
+	for counter := uint(1); counter <= testCounter; counter++ {
+		testName := fmt.Sprintf("Test %d", counter)
+		testCase, ok := measurement[testName]
+		if !ok {
+			err = fmt.Errorf("report doesn't contain the test name: %s", testName)
+		}
+		err = excelGenerator.AppendWorksheet(testName, testCase)
+		if err != nil {
+			return
+		}
+	}
 	err = excelGenerator.SaveAs(pathToSaveFile)
 	return
 }
