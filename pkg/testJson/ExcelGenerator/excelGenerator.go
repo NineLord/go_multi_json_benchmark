@@ -20,8 +20,8 @@ type ExcelGenerator struct {
 	formatColorful     int
 	jsonNames          *utils.Vector[string]
 	totalTestLength    time.Duration
-	averagePerJsons    map[string]map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector
-	averageAllJsons    map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector
+	averagePerJsons    map[string]map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector
+	averageAllJsons    map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector
 }
 
 func MakeExcelGenerator(jsonNames *utils.Vector[string], totalTestLength time.Duration, configs []Config.Config) (ExcelGenerator, error) {
@@ -64,7 +64,7 @@ func MakeExcelGenerator(jsonNames *utils.Vector[string], totalTestLength time.Du
 		return ExcelGenerator{}, err
 	}
 
-	averagePerJsons := make(map[string]map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector)
+	averagePerJsons := make(map[string]map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector)
 	for _, jsonName := range jsonNames.GetAll() {
 		averagePerJsons[jsonName] = getDataCollectorsForEachTest()
 	}
@@ -171,7 +171,7 @@ func (excelGenerator *ExcelGenerator) addTestData(row uint, column uint,
 	worksheetName, jsonName string,
 	testData map[MeasurementType.MeasurementType]time.Duration,
 	jsonDataCollector *MathDataCollector.MathDataCollector,
-	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
+	testDataCollectors map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector) (uint, error) {
 
 	rowString := strconv.Itoa(int(row))
 	cell := columnNumberToString(int(column)) + rowString
@@ -206,7 +206,6 @@ func (excelGenerator *ExcelGenerator) addTestData(row uint, column uint,
 		return row, fmt.Errorf("test_data_collectors doesn't have the given measurement type: %d", measurementType)
 	} else {
 		dataCollector.Add(value)
-		println("hey") // Shaked-TODO: delete this
 	}
 
 	return row + 1, nil
@@ -216,7 +215,7 @@ func (excelGenerator *ExcelGenerator) addTotalTestData(row uint, column uint,
 	measurementType MeasurementType.MeasurementType, title string,
 	worksheetName, jsonName string,
 	jsonDataCollector *MathDataCollector.MathDataCollector,
-	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
+	testDataCollectors map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector) (uint, error) {
 
 	rowString := strconv.Itoa(int(row))
 	cell := columnNumberToString(int(column)) + rowString
@@ -253,7 +252,7 @@ func (excelGenerator *ExcelGenerator) addTotalTestData(row uint, column uint,
 func (excelGenerator *ExcelGenerator) addTestAverageData(row, column uint,
 	measurementType MeasurementType.MeasurementType, title string,
 	worksheetName string,
-	testDataCollectors map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector) (uint, error) {
+	testDataCollectors map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector) (uint, error) {
 
 	rowString := strconv.Itoa(int(row))
 	cell := columnNumberToString(int(column)) + rowString
@@ -339,10 +338,10 @@ func setCellFloat64AndStyle(workbook *excelize.File, worksheetName, cell string,
 	return nil
 }
 
-func getDataCollectorsForEachTest() map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector {
-	dataCollectors := make(map[MeasurementType.MeasurementType]MathDataCollector.MathDataCollector)
+func getDataCollectorsForEachTest() map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector {
+	dataCollectors := make(map[MeasurementType.MeasurementType]*MathDataCollector.MathDataCollector)
 	for _, measurementType := range MeasurementType.VariantsMeasurementTypes {
-		dataCollectors[measurementType] = MathDataCollector.MakeMathDataCollector()
+		dataCollectors[measurementType] = MathDataCollector.NewMathDataCollector()
 	}
 	return dataCollectors
 }
