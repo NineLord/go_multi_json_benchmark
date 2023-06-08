@@ -33,7 +33,7 @@ func getDefaultPathToSaveFile() cli.Path {
 	}
 }
 
-// Example: Shaked-TODO
+// Example: make jsonTester && clear && ./bin/jsonTester -D -s ./junk/report_go.xlsx ../rust_json_benchmark/junk/config_4.json 10
 
 func main() {
 	app := &cli.App{
@@ -49,9 +49,8 @@ func main() {
 			},
 			&cli.UintFlag{
 				Name:    "threadCount",
-				Aliases: []string{"c"},
+				Aliases: []string{"t"},
 				Usage:   "Number of threads to use to run the test",
-				Value:   3,
 			},
 			&cli.BoolFlag{
 				Name:    "debug",
@@ -111,7 +110,9 @@ func cliAction(arguments *cli.Context) (err error) {
 	debug := arguments.Bool("debug")
 	//#endregion
 
-	runtime.GOMAXPROCS(int(threadCount)) // Shaked-TODO: make this optional
+	if threadCount != 0 {
+		runtime.GOMAXPROCS(int(threadCount))
+	}
 
 	if debug {
 		var prettyConfig string

@@ -62,16 +62,6 @@ func (reporter *Reporter) FinishMeasure(testCount string, jsonName string, measu
 	return nil
 }
 
-// Shaked-TODO
-//func (reporter *Reporter) Measure(testCount string, jsonName string, measurementType MeasurementType.MeasurementType, function func() (any, error)) (any, error) {
-//	reporter.StartMeasure(testCount, jsonName, measurementType)
-//	functionResult, functionError := function()
-//	if err := reporter.FinishMeasure(testCount, jsonName, measurementType); err != nil {
-//		panic(fmt.Sprintf("Finished measureting before started: testCount=%s ; jsonName=%s ; measurementType=%v", testCount, jsonName, measurementType))
-//	}
-//	return functionResult, functionError
-//}
-
 func (reporter *Reporter) GetMeasures() ReportDataCopy {
 	reporter.lock.RLock()
 	defer reporter.lock.RUnlock()

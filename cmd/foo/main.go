@@ -41,6 +41,7 @@ func columnNumberToString(column int) string {
 	return result
 }
 
+//goland:noinspection GoUnusedFunction
 func setRawConfig() {
 	//config := Config.Config{
 	//	Name:             "Shimi",
