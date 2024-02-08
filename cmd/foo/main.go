@@ -9,12 +9,11 @@ import (
 // Example: make clean foo && clear  && ./bin/foo
 
 func main() {
-	println("Hello!")
+	go foo()
+}
 
-	println(columnStringToNumber("AA"))
-	println(columnNumberToString(27))
+func foo() {
 
-	println("Goodbye!")
 }
 
 func columnStringToNumber(column string) uint {
